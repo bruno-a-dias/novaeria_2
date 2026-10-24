@@ -29,6 +29,8 @@ var _dano_t := 0.0
 var _lado := 1.0
 var x_base := 0.0
 var _pes_y := 0.0
+var _off_x := 0.0
+const CORPO_X := 110.0
 
 func _init(sprite: Sprite3D, k: String) -> void:
 	sp = sprite
@@ -42,6 +44,7 @@ func _init(sprite: Sprite3D, k: String) -> void:
 		sp.vframes = LINHAS
 		# o personagem ocupa ~80% da altura da célula (154 de 192 px) e os pés ficam 6 px acima da base
 		var cel_h := float(tex.get_height()) / LINHAS
+		_off_x = float(tex.get_width()) / COLS * 0.5 - CORPO_X     # o corpo fica a CORPO_X px da borda esquerda da célula
 		sp.pixel_size = altura / (cel_h * 0.8021)
 		_pes_y = (cel_h - 6.0 - cel_h * 0.5) * sp.pixel_size
 		sp.position.y = _pes_y
@@ -101,6 +104,7 @@ func _atualizar_folha(dt: float, vy: float, extra_y: float) -> void:
 		_quadro_t += dt * FPS[estado]
 		f = int(_quadro_t) % n
 	sp.frame = estado * COLS + f
+	sp.offset.x = _off_x * (-1.0 if sp.flip_h else 1.0)
 	sp.position.y = _pes_y + extra_y
 
 func _atualizar_fantoche(dt: float, vx: float, vy: float, no_chao: bool, vmax: float, extra_y: float) -> void:
