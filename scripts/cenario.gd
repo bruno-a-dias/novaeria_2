@@ -155,7 +155,7 @@ func _terreno() -> void:
 		var cor: Color = Game.SETORES[r[3]]["topo"]
 		var w: float = r[1] - r[0] + 1.0
 		_caixa(Vector3(r[0] + w * 0.5, r[2] + 1.0 - 0.14, -1.75), Vector3(w, 0.3, 6.5), _mat(cor, true))
-	#_plataformas()  # desativado: quebra a cena na web (corrigido no commit seguinte)
+	_plataformas()
 
 ## Plataformas de atravessar por baixo (células 2): laje fina com borda clara, agrupadas por linha e setor.
 ## Usa MultiMesh (uma chamada de desenho por setor e parte) para não inflar a cena.
