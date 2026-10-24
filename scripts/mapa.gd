@@ -263,20 +263,22 @@ func _construir() -> void:
 
 # ---- Setor 1: Estalagem do Cervo Prateado (cap. 8-10)
 func _estalagem() -> void:
-	sala("e_salao", 4, 20, 38, 32, "estalagem")
-	plat(7, 23, 5)
-	plat(14, 26, 5)
-	plat(21, 23, 4)
-	plat(29, 26, 5)
-	plat(33, 23, 4)
+	# Salão principal: térreo + mezanino. Escada de degraus (plataformas) sobe à esquerda, desce à direita.
+	sala("e_salao", 4, 20, 38, 34, "taverna")
+	plat(8, 23, 4)                                 # degrau 1
+	plat(13, 26, 4)                                # degrau 2
+	plat(18, 29, 13)                               # mezanino (sobre o balcão)
+	plat(32, 26, 4)                                # degrau de descida
+	plat(36, 23, 3)
 	banco("estalagem", "Estalagem do Cervo Prateado", 6, 20)
 	abrir(24, 18, 28, 19)                          # alçapão para o porão
-	abrir(38, 20, 41, 26)
-	sala("e_patio", 41, 20, 62, 33, "estalagem")
+	abrir(38, 20, 41, 26)                          # passagem para o pátio
+	# Pátio dos caçadores: arena de ondas (Lyla)
+	sala("e_patio", 41, 20, 62, 33, "taverna_patio")
 	plat(45, 23, 4)
 	plat(51, 26, 5)
 	plat(57, 23, 4)
-	abrir(62, 20, 65, 26)
+	abrir(62, 20, 65, 26)                          # saída leste → Floresta de Oakhaven
 	portao("pateo_w", 39, 20, 39, 26, false)
 	portao("pateo_e", 63, 20, 63, 26, false)
 	arenas.append({"id": "pateo", "setor": "estalagem", "trig": _r([47, 20, 60, 33]), "fecha": ["pateo_w", "pateo_e"], "abre": [],

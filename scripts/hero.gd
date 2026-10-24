@@ -238,6 +238,16 @@ func _cone(alcance: float, cos_min: float, d: float, kb: float, stun: float) -> 
 	return n
 
 # ------------------------------------------------------------------ ataques básicos
+## Retorno visual de golpes/magias: avanço do sprite, "squash" e brilho.
+func _pose(avanco: float = 0.5, cor: Color = Color(1.6, 1.4, 1.1)) -> void:
+	var tw := create_tween()
+	tw.set_parallel(true)
+	sprite.position.x = face * avanco
+	sprite.scale = Vector3(1.18, 0.88, 1.0)
+	sprite.modulate = cor
+	tw.tween_property(sprite, "position:x", 0.0, 0.2)
+	tw.tween_property(sprite, "scale", Vector3.ONE, 0.2)
+
 func _atacar() -> void:
 	match chave:
 		"bron":
@@ -249,7 +259,8 @@ func _atacar() -> void:
 			var kb: float = [3.0, 3.0, 8.0][golpe]
 			_cooldown("atk", 1.0 if golpe < 2 else 1.4)
 			recup_t = 0.45 if golpe < 2 else 0.6
-			Fx.ring(get_parent(), global_position + aim * 1.0, 1.8, Color("ddd"), 0.2)
+			Fx.corte(get_parent(), global_position, face, 1.7 if golpe < 2 else 2.2, Color("f4f4ff") if golpe < 2 else Color("ffb070"), 0.22, -70.0 if golpe != 1 else 70.0, 70.0 if golpe != 1 else -70.0)
+			_pose(0.45 if golpe < 2 else 0.8)
 			_cone(2.4, 0.2, d, kb, stun)
 		"solys":
 			_cooldown("atk")
@@ -265,8 +276,10 @@ func _atacar() -> void:
 				if along > 0.0 and along < md and lateral < 1.3:
 					md = along
 					alvo = e
+			_pose(0.3, Color(1.5, 1.3, 1.0))
 			for i in range(6):
 				Fx.faiscas(get_parent(), global_position + dir_c * (0.8 + i * 1.0) - Vector3(0, 0.0, 0), Color("c0c0c0"), 3)
+				Fx.ring(get_parent(), global_position + dir_c * (0.8 + i * 1.0), 0.8, Color("ffd890"), 0.25)
 			if alvo != null:
 				alvo.receber_dano(14.0 * dmg_mult(), dir_c, 0.0, 0.1)
 				alvo.expiacao_t = 4.0
@@ -280,6 +293,7 @@ func _atacar() -> void:
 			var mult := 1.5 if pressao > 60.0 else 1.0
 			pressao += 6.0
 			var dir_z := _aim_alvo()
+			_pose(-0.25, Color(1.5, 1.3, 0.9))
 			Proj.criar(get_parent(), "shard", centro() + dir_z * 0.6, {"vel": dir_z * 16.0, "dano": 10.0 * mult * dmg_mult(), "vida": 1.1, "cor": Color("ffb347"), "heroi": true})
 
 # ------------------------------------------------------------------ habilidades
@@ -288,6 +302,8 @@ func _skill1() -> void:
 		"bron":  # Impacto de Runas
 			_cooldown("sk1")
 			recup_t = 0.5
+			_pose(0.7, Color(1.8, 1.1, 0.8))
+			Fx.corte(get_parent(), global_position, face, 2.8, Color("ff6a3d"), 0.35, -110.0, 110.0)
 			Fx.ring(get_parent(), global_position + aim * 1.5, 3.6, Color("ff6a3d"), 0.3)
 			Fx.popup(get_parent(), global_position, "IMPACTO DE RUNAS", Color("ff9a6a"), 36)
 			_cone(3.8, 0.0, 40.0, 9.0, 0.8)

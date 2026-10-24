@@ -21,6 +21,7 @@ func construir(m: Mapa) -> void:
 	_fundos()
 	for s in mapa.salas:
 		_decorar(s)
+	_fechar_lotes()
 	_espinhos()
 	_portoes()
 	for b in mapa.bancos:
@@ -63,6 +64,27 @@ func _mat(cor: Color, rocha: bool = false, emissivo: bool = false, alfa: float =
 		m.albedo_color = Color(cor.r, cor.g, cor.b, alfa)
 	_mats[chave] = m
 	return m
+
+## Caixas estáticas são acumuladas por material e fundidas em UMA malha (o Compatibility/web falha
+## ao passar de ~1000 MeshInstance3D na cena).
+var _lotes := {}      # Material -> SurfaceTool
+
+func _caixa_lote(pos: Vector3, tam: Vector3, mat: Material) -> void:
+	if not _lotes.has(mat):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_lotes[mat] = st
+	var bm := BoxMesh.new()
+	bm.size = tam
+	(_lotes[mat] as SurfaceTool).append_from(bm, 0, Transform3D(Basis.IDENTITY, pos))
+
+func _fechar_lotes() -> void:
+	for mat in _lotes.keys():
+		var mi := MeshInstance3D.new()
+		mi.mesh = (_lotes[mat] as SurfaceTool).commit()
+		mi.material_override = mat
+		add_child(mi)
+	_lotes.clear()
 
 func _caixa(pos: Vector3, tam: Vector3, mat: Material, pai: Node = null) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -154,7 +176,7 @@ func _terreno() -> void:
 	for r in topo_runs:
 		var cor: Color = Game.SETORES[r[3]]["topo"]
 		var w: float = r[1] - r[0] + 1.0
-		_caixa(Vector3(r[0] + w * 0.5, r[2] + 1.0 - 0.14, -1.75), Vector3(w, 0.3, 6.5), _mat(cor, true))
+		_caixa_lote(Vector3(r[0] + w * 0.5, r[2] + 1.0 - 0.14, -1.75), Vector3(w, 0.3, 6.5), _mat(cor, true))
 	_plataformas()
 
 ## Plataformas de atravessar por baixo (células 2): laje fina com borda clara, agrupadas por linha e setor.
@@ -182,16 +204,10 @@ func _plataformas() -> void:
 			"corpo": cor = Color(rocha.r * 1.15, rocha.g * 1.15, rocha.b * 1.15)
 			"topo": cor = cfg["topo"]
 			_: cor = Color(rocha.r * 0.6, rocha.g * 0.6, rocha.b * 0.6)
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var mp := _mat(cor, true)
 		for tr in grupos[chave]:
-			var bm := BoxMesh.new()
-			bm.size = Vector3.ONE
-			st.append_from(bm, 0, Transform3D(Basis.IDENTITY, Vector3.ZERO) * tr)
-		var mi := MeshInstance3D.new()
-		mi.mesh = st.commit()
-		mi.material_override = _mat(cor, true)
-		add_child(mi)
+			_caixa_lote(tr.origin, tr.basis.get_scale(), mp)
+	_fechar_lotes()
 
 func _grupo_add(grupos: Dictionary, chave: String, pos: Vector3, tam: Vector3) -> void:
 	if not grupos.has(chave):
@@ -207,7 +223,7 @@ func _bloco(key: String, y0: int, y1: int) -> void:
 	var h := y1 - y0 + 1.0
 	var cor: Color = Game.SETORES[st]["rocha"]
 	var v := 0.9 + 0.1 * float((x0 * 7 + y0 * 13) % 3) / 2.0
-	_caixa(Vector3(x0 + w * 0.5, y0 + h * 0.5, -PROF * 0.5), Vector3(w, h, PROF), _mat(Color(cor.r * v, cor.g * v, cor.b * v), true))
+	_caixa_lote(Vector3(x0 + w * 0.5, y0 + h * 0.5, -PROF * 0.5), Vector3(w, h, PROF), _mat(Color(cor.r * v, cor.g * v, cor.b * v), true))
 
 ## Arte de fundo por setor (planos pintados de referência). Cada imagem já vem espelhada em 2x2,
 ## então repetir a textura continua sem emendas, o que permite "expandir" o fundo por todo o setor.
@@ -265,6 +281,44 @@ func _fundos() -> void:
 		q.position = Vector3((x0 + x1) * 0.5, (y0 + y1) * 0.5, Z_FUNDO - 0.01 * i)
 		i += 1
 
+## Estalagem do Cervo Prateado, refeita do zero: poucas peças simples (vigas, lareira, balcão, mesas, barris, lanternas).
+func _taverna(x0: int, x1: int, y0: int, y1: int, salao: bool) -> void:
+	var madeira := _mat(Color("5a3a20"), true)
+	var escura := _mat(Color("3a2414"), true)
+	var chao := float(y0)
+	# vigas de teto e pilares
+	_vigas(x0, x1, y0, y1)
+	for xx in range(x0 + 6, x1 - 2, 9):
+		_caixa_lote(Vector3(xx, chao + (y1 - y0) * 0.5, -3.2), Vector3(0.7, y1 - y0, 0.7), escura)
+	# lanternas penduradas (luz quente)
+	for xx in range(x0 + 5, x1 - 3, 8):
+		_caixa_lote(Vector3(xx, y1 - 1.5, -2.0), Vector3(0.06, 3.0, 0.06), escura)
+		_caixa_lote(Vector3(xx, y1 - 3.1, -2.0), Vector3(0.5, 0.6, 0.5), _mat(Color("ffcc77"), false, true))
+		_luz(Vector3(xx, y1 - 3.1, -1.5), Color("ffae5a"), 1.5, 9.0)
+	if salao:
+		# brilho da lareira (a lareira em si vem da arte de fundo)
+		_luz(Vector3(x0 + 3.0, chao + 1.6, -2.0), Color("ff8a3a"), 2.4, 12.0)
+		# balcão do bar com banquetas e prateleira
+		_caixa_lote(Vector3(x0 + 20.0, chao + 0.55, -2.6), Vector3(9.0, 1.1, 1.3), madeira)
+		_caixa_lote(Vector3(x0 + 20.0, chao + 1.15, -2.6), Vector3(9.4, 0.18, 1.5), escura)
+		_caixa_lote(Vector3(x0 + 20.0, chao + 3.0, -3.6), Vector3(8.0, 0.2, 0.6), madeira)
+		for i in range(5):
+			_cil(Vector3(x0 + 16.5 + i * 1.75, chao + 0.4, -1.2), 0.32, 0.8, madeira)
+		# mesas com banquinhos no térreo (lado leste)
+		for mx in [x0 + 28.0, x0 + 32.0]:
+			_caixa_lote(Vector3(mx, chao + 0.6, -1.6), Vector3(2.2, 0.16, 1.1), madeira)
+			_caixa_lote(Vector3(mx, chao + 0.3, -1.6), Vector3(0.18, 0.6, 0.18), escura)
+	else:
+		# pátio: muro baixo, barris e caixotes
+		_caixa_lote(Vector3((x0 + x1) * 0.5, chao + 0.9, -3.6), Vector3(x1 - x0 - 1, 1.8, 0.6), _mat(Color("4a4440"), true))
+		for i in range(3):
+			var bx := x0 + 3.0 + i * 5.0
+			_caixa_lote(Vector3(bx, chao + 0.5, -2.0), Vector3(1.0, 1.0, 1.0), madeira)
+	# barris
+	for i in range(maxi(1, (x1 - x0) / 12)):
+		var bx2 := _rng.randf_range(x0 + 2, x1 - 2)
+		_cil(Vector3(bx2, chao + 0.55, -2.2), 0.5, 1.1, madeira)
+
 # ------------------------------------------------------------------ decoração
 func _decorar(s: Dictionary) -> void:
 	var cfg: Dictionary = Game.SETORES[s["setor"]]
@@ -275,14 +329,10 @@ func _decorar(s: Dictionary) -> void:
 	var y1: int = s["y1"]
 	var largura := x1 - x0
 	match s["deco"]:
-		"estalagem":
-			_vigas(x0, x1, y0, y1)
-			_tochas(x0 + 5, x1 - 3, y0, 4.5, Color("ffae5a"), 1.9)
-			_janelas(x0, x1, y0, y1)
-			for i in range(maxi(1, largura / 14)):
-				var bx := _rng.randf_range(x0 + 2, x1 - 2)
-				var c := _cil(Vector3(bx, mapa.chao_em(bx, y0 + 1) + 0.55, -1.2), 0.5, 1.1, _mat(Color("5a3a20")))
-				c.scale = Vector3(1, 1, 1)
+		"taverna":
+			_taverna(x0, x1, y0, y1, true)
+		"taverna_patio":
+			_taverna(x0, x1, y0, y1, false)
 		"cabana":
 			_tochas(x0 + 3, x1 - 2, y0, 4.5, Color("ffc070"), 1.5)
 			_caixa(Vector3((x0 + x1) * 0.5, y0 + 0.45, -2.0), Vector3(3.2, 0.9, 1.4), _mat(Color("4a3020")))
