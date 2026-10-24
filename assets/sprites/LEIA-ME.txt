@@ -1,0 +1,2 @@
+Coloque aqui PNGs transparentes: bron, solys, ziggs, sanguessuga, carnical, succubus, irma, capelao, besta, valerius, lyla, lyla_vampira (ex.: bron.png).
+Se o arquivo existir, o jogo usa a sua arte no lugar do placeholder.
