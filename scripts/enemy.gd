@@ -21,6 +21,8 @@ var hp := 40.0
 var max_hp := 40.0
 var raio_corpo := 0.5
 var sprite: Sprite3D
+var anim: Anim
+var _face_a := 1.0
 var level: Node = null
 var atk_t := 1.0
 var estado := "persegue"      # persegue, preparo, dash, giro, drena
@@ -75,6 +77,8 @@ func setup(k: String, lvl: Node, ja_agressivo: bool = false) -> void:
 	Art.configurar(sprite, k)
 	base_y = sprite.position.y
 	add_child(sprite)
+	if not voa:
+		anim = Anim.new(sprite, k)
 	var luz := OmniLight3D.new()
 	luz.light_color = Color("ff2a3a")
 	luz.omni_range = 3.0 if not chefe else 6.0
@@ -190,6 +194,10 @@ func _integrar(delta: float, alvo: Node3D) -> void:
 		if r["teto"] and vy > 0.0:
 			vy = 0.0
 	_separar()
+	if anim != null:
+		if absf(mv.x) > 0.1:
+			_face_a = signf(mv.x)
+		anim.atualizar(delta, mv.x, vy, no_chao, -1.0 if sprite.flip_h else 1.0, float(d["vel"]))
 
 func _separar() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
@@ -209,6 +217,8 @@ func _mover(dir: Vector3, mult: float = 1.0) -> void:
 		mv.x = signf(dir.x) * d["vel"] * mult
 
 func _acertar(alvo: Node3D, mult: float = 1.0) -> void:
+	if anim != null:
+		anim.golpe(0.35, 0.22)
 	alvo.receber_dano(d["dano"] * mult, d["contam"], global_position)
 
 # ---- IAs -----------------------------------------------------------------
@@ -406,6 +416,8 @@ func receber_dano(valor: float, dir: Vector3, kb: float, stun: float) -> void:
 	if expiacao_t > 0.0:
 		v *= 1.25
 	hp -= v
+	if anim != null:
+		anim.dano(0.25)
 	if estado == "drena":
 		dano_no_preparo += v
 	knock.x += dir.x * kb * (0.3 if chefe else 1.0)

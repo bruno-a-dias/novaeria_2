@@ -24,6 +24,7 @@ const JUMP_V := 16.5
 var ativo := false
 var sprite: Sprite3D
 var luz: OmniLight3D
+var anim: Anim
 var cd := {"atk": 0.0, "sk1": 0.0, "sk2": 0.0, "ult": 0.0}
 const CD_MAX := {
 	"bron": {"atk": 0.55, "sk1": 6.0, "sk2": 5.0, "ult": 25.0},
@@ -57,6 +58,7 @@ func setup(k: String, lvl: Node) -> void:
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	Art.configurar(sprite, k)
 	add_child(sprite)
+	anim = Anim.new(sprite, k)
 	luz = OmniLight3D.new()
 	luz.omni_range = 4.5
 	luz.light_color = Color("ffe89c") if k == "solys" else dados["cor"]
@@ -165,14 +167,7 @@ func _physics_process(delta: float) -> void:
 		pulos_extra = 1
 	else:
 		no_chao = false
-	# animação simples: balanço ao andar, inclinação ao correr
-	var base_y: float = Art.ALTURA.get(chave, 2.4) * 0.5
-	if no_chao and absf(velocity.x) > 0.5:
-		passo += delta * 13.0
-		sprite.position.y = base_y + absf(sin(passo)) * 0.07
-	else:
-		sprite.position.y = base_y
-	sprite.rotation.z = lerpf(sprite.rotation.z, -velocity.x * 0.012, 10.0 * delta)
+	anim.atualizar(delta, velocity.x, velocity.y, no_chao, face, float(dados["vel"]))
 	# armadilhas de espinhos
 	if no_chao:
 		seguro_t -= delta
@@ -240,13 +235,8 @@ func _cone(alcance: float, cos_min: float, d: float, kb: float, stun: float) -> 
 # ------------------------------------------------------------------ ataques básicos
 ## Retorno visual de golpes/magias: avanço do sprite, "squash" e brilho.
 func _pose(avanco: float = 0.5, cor: Color = Color(1.6, 1.4, 1.1)) -> void:
-	var tw := create_tween()
-	tw.set_parallel(true)
-	sprite.position.x = face * avanco
-	sprite.scale = Vector3(1.18, 0.88, 1.0)
+	anim.golpe(absf(avanco) * (1.0 if avanco >= 0.0 else -1.0), 0.26)
 	sprite.modulate = cor
-	tw.tween_property(sprite, "position:x", 0.0, 0.2)
-	tw.tween_property(sprite, "scale", Vector3.ONE, 0.2)
 
 func _atacar() -> void:
 	match chave:
@@ -384,6 +374,7 @@ func receber_dano(d: float, contaminacao: float = 0.0, origem: Vector3 = Vector3
 	if invuln_t > 0.0 or not ativo and not ignora_guarda:
 		return
 	var final := d
+	anim.dano(0.3)
 	if guarda_t > 0.0 and not ignora_guarda:
 		if parry_t > 0.0:
 			Fx.popup(get_parent(), global_position, "PARRY!", Color("ffffff"), 44)

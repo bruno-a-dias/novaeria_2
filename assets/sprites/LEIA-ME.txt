@@ -1,2 +1,16 @@
-Coloque aqui PNGs transparentes: bron, solys, ziggs, sanguessuga, carnical, succubus, irma, capelao, besta, valerius, lyla, lyla_vampira (ex.: bron.png).
-Se o arquivo existir, o jogo usa a sua arte no lugar do placeholder.
+SPRITES
+=======
+1) Imagem única  -> <chave>.png  (PNG transparente, personagem de lado olhando para a DIREITA)
+   O jogo anima essa imagem como "fantoche": respiração, passada, pulo, aterrissagem, golpe e dano.
+
+2) Folha de quadros (animação de verdade) -> <chave>_sheet.png
+   Grade de 6 colunas x 5 linhas, todas as células do MESMO tamanho, fundo transparente,
+   personagem sempre alinhado pelos pés na base da célula e olhando para a DIREITA.
+     linha 1 (topo): PARADO   4 quadros (colunas 1-4)
+     linha 2:        ANDAR    6 quadros (colunas 1-6)
+     linha 3:        PULO     2 quadros (1 = subindo, 2 = caindo)
+     linha 4:        GOLPE    5 quadros (preparar, avançar, impacto, recuo, volta)
+     linha 5:        DANO     2 quadros
+   Se existir a folha, ela tem prioridade sobre a imagem única.
+
+Chaves: bron, solys, ziggs, sanguessuga, carnical, succubus, irma, capelao, besta, valerius, lyla, lyla_vampira.
