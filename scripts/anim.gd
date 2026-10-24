@@ -28,6 +28,7 @@ var _golpe_av := 0.0
 var _dano_t := 0.0
 var _lado := 1.0
 var x_base := 0.0
+var _pes_y := 0.0
 
 func _init(sprite: Sprite3D, k: String) -> void:
 	sp = sprite
@@ -39,8 +40,12 @@ func _init(sprite: Sprite3D, k: String) -> void:
 		sp.texture = tex
 		sp.hframes = COLS
 		sp.vframes = LINHAS
-		sp.pixel_size = altura / float(tex.get_height() / LINHAS)
-		sp.position.y = altura * 0.5
+		# o personagem ocupa ~80% da altura da célula (154 de 192 px) e os pés ficam 6 px acima da base
+		var cel_h := float(tex.get_height()) / LINHAS
+		sp.pixel_size = altura / (cel_h * 0.8021)
+		_pes_y = (cel_h - 6.0 - cel_h * 0.5) * sp.pixel_size
+		sp.position.y = _pes_y
+		sp.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 		folha = true
 	else:
 		# sem billboard para poder inclinar o sprite (a câmera é fixa, só inclinada 8° em X)
@@ -96,7 +101,7 @@ func _atualizar_folha(dt: float, vy: float, extra_y: float) -> void:
 		_quadro_t += dt * FPS[estado]
 		f = int(_quadro_t) % n
 	sp.frame = estado * COLS + f
-	sp.position.y = altura * 0.5 + extra_y
+	sp.position.y = _pes_y + extra_y
 
 func _atualizar_fantoche(dt: float, vx: float, vy: float, no_chao: bool, vmax: float, extra_y: float) -> void:
 	var sx := 1.0
